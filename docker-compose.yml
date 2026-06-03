@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  frontend:
+    build: ./frontend-js
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - polyglot-net
+
+  backend:
+    build: ./backend-dotnet
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - polyglot-net
+
+  worker:
+    build: ./worker-python
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - polyglot-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - polyglot-net
+
+networks:
+  polyglot-net:
+    driver: bridge
