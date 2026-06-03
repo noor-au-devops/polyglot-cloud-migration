@@ -1,0 +1,41 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.2",
+  "serial": 2,
+  "lineage": "641f3ec8-f1b6-8b02-3de7-754283bbb2a4",
+  "outputs": {
+    "public_ip": {
+      "value": null,
+      "type": "string"
+    },
+    "ssh_command": {
+      "value": null,
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "azurerm_resource_group",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "/subscriptions/33d43b76-b782-41ff-aabb-a084af76f2ea/resourceGroups/polyglot-rg",
+            "location": "southeastasia",
+            "managed_by": "",
+            "name": "polyglot-rg",
+            "tags": {},
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo1NDAwMDAwMDAwMDAwLCJkZWxldGUiOjU0MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjo1NDAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIwIn0="
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
