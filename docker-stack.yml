@@ -1,0 +1,52 @@
+cat > docker-stack.yml << 'EOF'
+version: "3.8"
+
+services:
+  frontend:
+    image: noorialvi/polyglot-frontend:latest
+    ports:
+      - "3000:80"
+    networks:
+      - polyglot-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: noorialvi/polyglot-backend:latest
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - REDIS_HOST=redis
+    networks:
+      - polyglot-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  worker:
+    image: noorialvi/polyglot-worker:latest
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - polyglot-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - polyglot-net
+    deploy:
+      replicas: 1
+
+networks:
+  polyglot-net:
+    driver: overlay
+EOF
