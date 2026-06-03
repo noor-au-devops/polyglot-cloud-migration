@@ -1,124 +1,97 @@
-resource "azurerm_resource_group" "main" {
-  name     = "polyglot-rg"
-  location = var.location
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  tags = { Name = "polyglot-vpc" }
 }
 
-resource "azurerm_virtual_network" "main" {
-  name                = "polyglot-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
+  tags = { Name = "polyglot-subnet" }
 }
 
-resource "azurerm_subnet" "public" {
-  name                 = "polyglot-subnet"
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags = { Name = "polyglot-igw" }
 }
 
-resource "azurerm_public_ip" "main" {
-  name                = "polyglot-public-ip"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  allocation_method   = "Static"
-}
-
-resource "azurerm_network_security_group" "main" {
-  name                = "polyglot-nsg"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-
-  security_rule {
-    name                       = "SSH"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
-
-  security_rule {
-    name                       = "Frontend"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "3000"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Backend"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "5000"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+  tags = { Name = "polyglot-rt" }
 }
 
-resource "azurerm_network_interface" "main" {
-  name                = "polyglot-nic"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
 
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.public.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.main.id
+resource "aws_security_group" "sg" {
+  name   = "polyglot-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = { Name = "polyglot-sg" }
+}
+
+resource "aws_key_pair" "main" {
+  key_name   = var.key_name
+  public_key = file("~/.ssh/polyglot-key.pub")
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"]
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "main" {
-  network_interface_id      = azurerm_network_interface.main.id
-  network_security_group_id = azurerm_network_security_group.main.id
-}
+resource "aws_instance" "main" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.sg.id]
+  key_name                    = aws_key_pair.main.key_name
+  associate_public_ip_address = true
 
-resource "azurerm_linux_virtual_machine" "main" {
-  name                = "polyglot-vm"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  size                = var.vm_size
-  admin_username      = var.admin_username
-
-  network_interface_ids = [
-    azurerm_network_interface.main.id,
-  ]
-
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
-  }
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
-  }
-
-  custom_data = base64encode(<<-EOF
+  user_data = <<-EOF
     #!/bin/bash
     apt-get update -y
     apt-get install -y docker.io docker-compose-plugin
     systemctl start docker
     systemctl enable docker
-    usermod -aG docker azureuser
+    usermod -aG docker ubuntu
   EOF
-  )
+
+  tags = { Name = "polyglot-vm" }
 }
