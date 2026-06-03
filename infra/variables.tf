@@ -1,22 +1,27 @@
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
-  default     = "t2.micro"
-}
-
-variable "key_name" {
-  description = "SSH key pair name"
+variable "subscription_id" {
+  description = "Azure Subscription ID"
   type        = string
 }
 
-variable "allowed_ssh_ip" {
-  description = "Your IP for SSH access"
+variable "location" {
+  description = "Azure region"
   type        = string
-  default     = "0.0.0.0/0"
+  default     = "East US"
+}
+
+variable "vm_size" {
+  description = "Azure VM size"
+  type        = string
+  default     = "Standard_B1s"
+}
+
+variable "admin_username" {
+  description = "VM admin username"
+  type        = string
+  default     = "azureuser"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key content"
+  type        = string
 }

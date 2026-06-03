@@ -1,9 +1,9 @@
 output "public_ip" {
   description = "Public IP of the VM"
-  value       = aws_instance.polyglot_vm.public_ip
+  value       = azurerm_public_ip.main.ip_address
 }
 
-output "public_dns" {
-  description = "Public DNS of the VM"
-  value       = aws_instance.polyglot_vm.public_dns
+output "ssh_command" {
+  description = "SSH command to connect"
+  value       = "ssh azureuser@${azurerm_public_ip.main.ip_address}"
 }
