@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, feature/* ]
+    branches: [ main, feature/*, fix/* ]
   pull_request:
     branches: [ main ]
 
@@ -81,3 +81,13 @@ jobs:
           context: ./frontend-js
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/polyglot-frontend:latest
+
+  trigger-jenkins:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Jenkins
+        run: |
+          curl -X POST http://${{ secrets.JENKINS_URL }}/job/polyglot-deploy/build \
+            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }}"
